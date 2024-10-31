@@ -91,7 +91,9 @@ class AddCommand(InformalCommandInterface):
         return "add"
     def call(self, tokens: MutableSequence[str]) -> None:
         pixels = np.array(getLayer(tokens[1]).img.convert("RGB"))
-        pixels = pixels + int(tokens[2])
+        pixels+=int(tokens[2])
+        clone = np.array(getLayer(tokens[1]).img.convert("RGB"))
+        pixels[pixels<clone]=255
         getLayer(tokens[1]).img = Image.fromarray(pixels, 'RGB')
 
 class SubCommand(InformalCommandInterface):
@@ -100,6 +102,8 @@ class SubCommand(InformalCommandInterface):
     def call(self, tokens: MutableSequence[str]) -> None:
         pixels = np.array(getLayer(tokens[1]).img.convert("RGB"))
         pixels = pixels - int(tokens[2])
+        clone = np.array(getLayer(tokens[1]).img.convert("RGB"))
+        pixels[pixels>clone]=0
         getLayer(tokens[1]).img = Image.fromarray(pixels, 'RGB')
 
 class MulCommand(InformalCommandInterface):
@@ -108,6 +112,8 @@ class MulCommand(InformalCommandInterface):
     def call(self, tokens: MutableSequence[str]) -> None:
         pixels = np.array(getLayer(tokens[1]).img.convert("RGB"))
         pixels = pixels * int(tokens[2])
+        clone = np.array(getLayer(tokens[1]).img.convert("RGB"))
+        pixels[pixels<clone]=255
         getLayer(tokens[1]).img = Image.fromarray(pixels, 'RGB')
 
 class DivCommand(InformalCommandInterface):
@@ -116,6 +122,8 @@ class DivCommand(InformalCommandInterface):
     def call(self, tokens: MutableSequence[str]) -> None:
         pixels = np.array(getLayer(tokens[1]).img.convert("RGB"))
         pixels = pixels / int(tokens[2])
+        clone = np.array(getLayer(tokens[1]).img.convert("RGB"))
+        pixels[pixels>clone]=0
         getLayer(tokens[1]).img = Image.fromarray(pixels, 'RGB')
         
 class MoveCommand(InformalCommandInterface):
@@ -132,10 +140,28 @@ class AlphaCommand(InformalCommandInterface):
 
 class MergeDownCommand(InformalCommandInterface):
     def getName(self) -> str:
-        return "mdown"
+        return "merge"
     def call(self, tokens: MutableSequence[str]) -> None:
         for i in range(1, len(layerArray)):
             layerArray[0].img = Image.blend(layerArray[0].img, layerArray[i].img, layerArray[i].alpha)        
+
+class LayerAddCommand(InformalCommandInterface):
+    def getName(self) -> str:
+        return "ladd"
+    def call(self, tokens: MutableSequence[str]) -> None:
+        pixels = np.array(getLayer(tokens[1]).img.convert("RGB")) + np.array(getLayer(tokens[2]).img.convert("RGB"))
+        clone = np.array(getLayer(tokens[1]).img.convert("RGB"))
+        pixels[pixels<clone]=255
+        getLayer(tokens[1]).img = Image.fromarray(pixels, 'RGB')
+
+class LayerMulCommand(InformalCommandInterface):
+    def getName(self) -> str:
+        return "lmul"
+    def call(self, tokens: MutableSequence[str]) -> None:
+        pixels = np.array(getLayer(tokens[1]).img.convert("RGB")) * np.array(getLayer(tokens[2]).img.convert("RGB"))
+        clone = np.array(getLayer(tokens[1]).img.convert("RGB"))
+        pixels[pixels<clone]=255
+        getLayer(tokens[1]).img = Image.fromarray(pixels, 'RGB')
 
 class GaussianBlurCommand(InformalCommandInterface):
     def getName(self) -> str:
@@ -151,7 +177,7 @@ class SobelCommand(InformalCommandInterface):
     def call(self, tokens: MutableSequence[str]) -> None:
         getLayer(tokens[1]).img = getLayer(tokens[1]).img.convert("RGB").filter(ImageFilter.Kernel((3, 3), (
             -1, -1, -1,
-            -1,  8, -1, 
+            -1,  8, -1,
             -1, -1, -1), 
             1, 0))
 
@@ -172,7 +198,9 @@ commandArray: MutableSequence[InformalCommandInterface] = [
     AlphaCommand(),
     MergeDownCommand(),
     GaussianBlurCommand(),
-    SobelCommand()
+    SobelCommand(),
+    LayerAddCommand(),
+    LayerMulCommand()
 ]
 
 def parseCommand(command: str):
